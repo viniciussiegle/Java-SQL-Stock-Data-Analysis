@@ -1,6 +1,5 @@
 package realtime;
 
-import java.sql.*;
 import java.util.*;
 
 
@@ -11,11 +10,15 @@ public class Main {
 
         // (fetch data from the web)
 
-        // save data to new database
-
+        // update data for historical quotes in database
+        String dataSourcePath = "data/";
+        String databaseUrl = "jdbc:sqlite:data/stocks.db";
+        DatabaseHandler dbHandler = new DatabaseHandler(databaseUrl);
+        dbHandler.updateDB(dataSourcePath);
 
         // retrieve data from the database (initially, only average opening prices)
-        float avg = getAverageOpening();
+        String stock = getStockTicker(dbHandler);
+        float avg = dbHandler.getAverageOpening(stock);
 
         // calculate amd print analysis values
         if (avg == 0) {
@@ -30,44 +33,20 @@ public class Main {
 
     }
 
-    /**
-     * Gets the average opening price of a stock from all available ones in the database for a prompted stock ticker.
-     * @return the average opening price
-     */
-    private static float getAverageOpening() {
-        String preparedQuery = "select avg(Open) from ";
-        String url = "jdbc:sqlite:data/stocks.db";
-        float avg = 0;
-        try (
-                Connection connection = DriverManager.getConnection(url);
-                Statement statement = connection.createStatement()
-        ) {
-            String stock = getStockTicker(connection);
-
-            ResultSet resultSet = statement.executeQuery(preparedQuery + stock);
-            resultSet.next();
-            avg = resultSet.getFloat(1);
-        }
-        catch (SQLException e) {
-            System.out.println(e.getMessage());
-        }
-        return avg;
-    }
 
     /**
      * Prompts the user for a stock ticker. Only allows tickers existing in the database to avoid injections.
-     * @param connection the connection to the database
-     * @return the stock ticker
-     * @throws SQLException if a database access error occurs
+     * @param dbHandler the Database Handler
+     * @return the stock ticker if there is any available. May return null if database is empty.
      */
-    private static String getStockTicker(Connection connection) throws SQLException {
+    private static String getStockTicker(DatabaseHandler dbHandler) {
         // Get available stock tickers based on existing table names
-        DatabaseMetaData metaData = connection.getMetaData();
-        ResultSet tables = metaData.getTables(null, null, "%", null);
-        List<String> availableStocks = new ArrayList<>();
-        tables.next();
-        while (tables.next()) {
-            availableStocks.add(tables.getString("TABLE_NAME"));
+        List<String> availableStocks = dbHandler.getAvailableStocks();
+
+        // Handles empty database
+        if (availableStocks == null || availableStocks.isEmpty()) {
+            System.out.println("Sorry! No data found!");
+            return null;
         }
 
         // Prompt user for stock ticker, restricting to existing ones to avoid injections
