@@ -25,7 +25,8 @@ public class Main {
         // Get Simple Moving Average (SMA) for the last 30, 180, and 360 days
         printSMA(dbHandler, stock, 30, 180, 360);
 
-        // Get EMA (30d)
+        // Get Exponential Moving Average (EMA) for the last 30 days
+        printEMA(dbHandler, stock, 30);
 
         // Get Volatility (30d, 180d, 360d)
 
@@ -96,4 +97,29 @@ public class Main {
         }
         System.out.println();
     }
+
+    /**
+     * Prints the Exponential Moving Average (EMA) for a given valid stock in the given time period, starting
+     * on the most recent data entries.
+     * @param dbHandler the database handler
+     * @param stock the stock to be analyzed
+     * @param days the time period to be analyzed in, in past business days from the most recent entry
+     */
+
+    private static void printEMA(DatabaseHandler dbHandler, String stock, int days) {
+        // Get EMA
+        float ema = dbHandler.getEMA(stock, days);
+
+        // TODO decidir como fazer para printar essa mensagem apenas uma vez para cada stock, não em cada análise
+        if (ema == 0) { // If stock is invalid, return at once
+            System.out.println("No data found for given stock: " + stock);
+            return;
+        }
+
+        // Print results
+        System.out.println("EMA:");
+        System.out.printf("%d days: %.2f", days, ema);
+        System.out.println();
+    }
+
 }

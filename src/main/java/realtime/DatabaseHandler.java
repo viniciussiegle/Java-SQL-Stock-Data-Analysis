@@ -81,6 +81,7 @@ public class DatabaseHandler {
                 for (int i = 1; i < record.size(); i++) {
                     preparedStatement.setString(i + 1, record.get(i));
                 }
+                //preparedStatement.setString(record.size(), record.get(record.size() - 1));
 
                 preparedStatement.addBatch();
             }
@@ -126,8 +127,10 @@ public class DatabaseHandler {
     }
 
     /**
-     * Gets the average opening price of a stock for a valid stock ticker.
-     * @return the average opening price of the stock if it is valid, 0 otherwise
+     * Gets the Simple Moving Average (SMA) of a stock for a valid stock ticker in the given time period.
+     * @param stock the stock ticker to analyze
+     * @param days the time period to be analyzed in, in past days
+     * @return the Simple Moving Average of the stock if it is valid, 0 otherwise
      */
     public float getSMA (String stock, int days) {
         // Restricts again to only valid strings to avoid injections
@@ -149,6 +152,79 @@ public class DatabaseHandler {
             System.out.println(e.getMessage());
         }
         return avg;
+    }
+
+    /**
+     * Gets the Exponential Moving Average (EMA) of a stock for a valid stock ticker in the given time period.
+     * @param stock the stock ticker to analyze
+     * @param days the time period to be analyzed in, in past days business days from most recent entry
+     * @return the Exponential Moving Average of the stock if it is valid, 0 otherwise
+     */
+    public float getEMA (String stock, int days) {
+        // Restricts again to only valid strings to avoid injections
+        if (!getAvailableStocks().contains(stock)) {
+            return 0;
+        }
+
+        // Calculate EMA values for stock ticker
+        // Calculate alpha (smoothing factor) of the EMA
+        float alpha = 2 / (float)(days + 1);
+        String query =
+            "WITH RECURSIVE                                                                           "
+            +"    analysis_table AS (                                                                 "
+                      // -- Isolate necessary values
+            +"        SELECT                                                                          "
+            +"            Date,                                                                       "
+            +"            Close,                                                                      "
+            +"            ROW_NUMBER() OVER (ORDER BY DATE DESC) as row_number                        "
+            +"        FROM                                                                            "
+            +"            "+stock+"                                                                   "
+            +"        ORDER BY Date DESC                                                              "
+            +"        LIMIT "+days+"                                                                  "
+            +"    ),                                                                                  "
+            +"    ema_calc AS(                                                                        "
+                      // -- Get Close value of first date as initial EMA
+            +"        SELECT                                                                          "
+            +"            *,                                                                          "
+            +"            Close as EMA                                                                "
+            +"        FROM                                                                            "
+            +"            analysis_table                                                              "
+            +"        WHERE                                                                           "
+            +"            Date = (SELECT MIN(Date) FROM analysis_table)                               "
+            +"                                                                                        "
+            +"        UNION ALL                                                                       "
+            +"                                                                                        "
+                    // -- Calculate EMA for subsequent dates
+            +"        SELECT                                                                          "
+            +"            analysis_table.Date,                                                        "
+            +"            analysis_table.Close,                                                       "
+            +"            analysis_table.row_number,                                                  "
+            +"            (analysis_table.Close * "+alpha+") + (ema_calc.EMA * (1 - "+alpha+")) as EMA"
+            +"        FROM                                                                            "
+            +"            analysis_table                                                              "
+            +"        JOIN                                                                            "
+            +"            ema_calc                                                                    "
+            +"        ON                                                                              "
+            +"            analysis_table.row_number = ema_calc.row_number - 1                         "
+            +"        WHERE                                                                           "
+            +"            analysis_table.Date <= (SELECT MAX(Date) FROM analysis_table)               "
+            +"    )                                                                                   "
+            +"                                                                                        "
+            +"SELECT EMA, MAX(Date) FROM ema_calc;                                                    ";
+
+        float ema = 0;
+        try (
+                Connection connection = DriverManager.getConnection(url);
+                Statement statement = connection.createStatement()
+        ) {
+            ResultSet resultSet = statement.executeQuery(query);
+            resultSet.next(); // skip header line
+            ema = resultSet.getFloat(1);
+        }
+        catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+        return ema;
     }
 
 
