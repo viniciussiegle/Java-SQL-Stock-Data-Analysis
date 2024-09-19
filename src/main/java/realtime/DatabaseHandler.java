@@ -8,6 +8,8 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.sql.*;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -70,9 +72,16 @@ public class DatabaseHandler {
 
             // Iterate over CSV Records
             for (CSVRecord record : csvParser) {
-                for (int i = 0; i < record.size(); i++) {
+                // Convert date types for better compatibility with SQLite
+                SimpleDateFormat format1 = new SimpleDateFormat("MM/dd/yyyy");
+                SimpleDateFormat format2 = new SimpleDateFormat("yyyy-MM-dd");
+                preparedStatement.setString(1, format2.format(format1.parse(record.get(0))));
+
+                // Set remaining entries
+                for (int i = 1; i < record.size(); i++) {
                     preparedStatement.setString(i + 1, record.get(i));
                 }
+
                 preparedStatement.addBatch();
             }
 
@@ -86,7 +95,7 @@ public class DatabaseHandler {
 
             System.out.println("Data successfully updated for: " + tableName);
         }
-        catch (SQLException | IOException e) {
+        catch (SQLException | IOException | ParseException e) {
             System.out.println(e.getMessage());
         }
     }
@@ -120,13 +129,13 @@ public class DatabaseHandler {
      * Gets the average opening price of a stock for a valid stock ticker.
      * @return the average opening price of the stock if it is valid, 0 otherwise
      */
-    public float getAverageOpening (String stock) {
-        // Restricts again to only valid stock tickers
+    public float getSMA (String stock, int days) {
+        // Restricts again to only valid strings to avoid injections
         if (!getAvailableStocks().contains(stock)) {
             return 0;
         }
-        // Queries for average for stock sticker
-        String query = "SELECT AVG(Open) FROM " + stock;
+        // Queries for average value for stock ticker
+        String query = "SELECT AVG(Close) FROM " + stock + " WHERE Date >= DATE('now', '-" + days + " days') ";
         float avg = 0;
         try (
                 Connection connection = DriverManager.getConnection(url);
