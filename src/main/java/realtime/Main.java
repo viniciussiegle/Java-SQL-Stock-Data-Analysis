@@ -29,7 +29,7 @@ public class Main {
         printEMA(dbHandler, stock, 30);
 
         // Get Volatility (30d, 180d, 360d)
-
+        printVolatility(dbHandler, stock, 30);
 
 
         // (update data and analysis)
@@ -105,7 +105,6 @@ public class Main {
      * @param stock the stock to be analyzed
      * @param days the time period to be analyzed in, in past business days from the most recent entry
      */
-
     private static void printEMA(DatabaseHandler dbHandler, String stock, int days) {
         // Get EMA
         float ema = dbHandler.getEMA(stock, days);
@@ -119,6 +118,29 @@ public class Main {
         // Print results
         System.out.println("EMA:");
         System.out.printf("%d days: %.2f", days, ema);
+        System.out.println();
+    }
+
+    /**
+     * Prints the Volatility for a given valid stock in the given time period, starting
+     * on the most recent data entries.
+     * @param dbHandler the database handler
+     * @param stock the stock to be analyzed
+     * @param days the time period to be analyzed in, in past business days from the most recent entry
+     */
+    private static void printVolatility(DatabaseHandler dbHandler, String stock, int days) {
+        // Get EMA
+        float volatility = dbHandler.getVolatility(stock, days);
+
+        // TODO
+        if (volatility == 0) { // If stock is invalid, return at once
+            System.out.println("No data found for given stock: " + stock);
+            return;
+        }
+
+        // Print results
+        System.out.println("Volatility:");
+        System.out.printf("%d days: %.2f", days, volatility);
         System.out.println();
     }
 

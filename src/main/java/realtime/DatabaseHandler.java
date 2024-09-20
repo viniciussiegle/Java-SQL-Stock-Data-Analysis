@@ -14,10 +14,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * A class that handles all operations to the specified database.
+ */
 public class DatabaseHandler {
 
     private final String url;
 
+    /**
+     * A class that handles all operations to the specified database.
+     * @param url the url from the database
+     */
     public DatabaseHandler(String url) {
         this.url = url;
     }
@@ -138,7 +145,8 @@ public class DatabaseHandler {
             return 0;
         }
         // Queries for average value for stock ticker
-        String query = "SELECT AVG(Close) FROM " + stock + " WHERE Date >= DATE('now', '-" + days + " days') ";
+        String query = String.format(
+                "SELECT AVG(Close) FROM %s WHERE Date >= DATE('now', '-%d days')", stock, days);
         float avg = 0;
         try (
                 Connection connection = DriverManager.getConnection(url);
@@ -169,6 +177,7 @@ public class DatabaseHandler {
         // Calculate EMA values for stock ticker
         // Calculate alpha (smoothing factor) of the EMA
         float alpha = 2 / (float)(days + 1);
+        // Create query with recursive CTEs
         String query =
             "WITH RECURSIVE                                                                           "
             +"    analysis_table AS (                                                                 "
@@ -194,7 +203,7 @@ public class DatabaseHandler {
             +"                                                                                        "
             +"        UNION ALL                                                                       "
             +"                                                                                        "
-                    // -- Calculate EMA for subsequent dates
+                      // -- Calculate EMA for subsequent dates
             +"        SELECT                                                                          "
             +"            analysis_table.Date,                                                        "
             +"            analysis_table.Close,                                                       "
@@ -225,6 +234,45 @@ public class DatabaseHandler {
             System.out.println(e.getMessage());
         }
         return ema;
+    }
+
+    public float getVolatility (String stock, int days) {
+        // Restricts again to only valid strings to avoid injections
+        if (!getAvailableStocks().contains(stock)) {
+            return 0;
+        }
+
+        // Calculate Volatility value
+        // Setup variables
+        float volatility;
+        float mean = getSMA(stock, days);
+        float[] closingPrices = new float[days];
+        String query = String.format(
+                "SELECT Close FROM %s ORDER BY Date DESC LIMIT %d", stock, days);
+
+        // Get closing prices
+        try (
+                Connection connection = DriverManager.getConnection(url);
+                Statement statement = connection.createStatement()
+        ){
+            ResultSet resultSet = statement.executeQuery(query);
+            int i = 0;
+            while (resultSet.next() && i < days) {
+                closingPrices[i++] = resultSet.getFloat(1);
+            }
+        }
+        catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+
+        // If connection succeeded, calculate volatility
+        double tmp = 0;
+        if (closingPrices[0] != 0) {
+            for (float closingPrice : closingPrices) {
+                tmp += Math.pow(closingPrice - mean, 2);
+            }
+        }
+        return volatility = (float) Math.sqrt(tmp / days);
     }
 
 
