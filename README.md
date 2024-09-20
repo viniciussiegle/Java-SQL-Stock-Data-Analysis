@@ -51,6 +51,8 @@ The Stock Price Analyzer is a personal project developed in **Java** and **SQL (
    - Read the `.csv` file to update the SQLite database.
    - Prompt you to select a stock ticker from the database.
    - Allow you to calculate the **SMA**, **EMA**, and **Price Volatility** for the selected stock over a given time period.
+<img width="567" alt="Screenshot 2024-09-20 at 17 03 11" src="https://github.com/user-attachments/assets/9c81f43f-a5b7-42c9-9ad2-722d73e5b1c5">
+
 
 ## Future Enhancements
 This project can be expanded to include:
