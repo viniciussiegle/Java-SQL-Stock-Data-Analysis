@@ -1,4 +1,4 @@
-package realtime.handlers;
+package analysis.handlers;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -122,9 +122,10 @@ public class DatabaseHandler {
 
 
     /**
-     * Gets the Simple Moving Average (SMA) of a stock for a valid stock ticker in the given time period.
+     * Gets the Simple Moving Average (SMA) of a stock for a valid stock ticker in the given time period,
+     * starting at the most recent data entries.
      * @param stock the stock ticker to analyze
-     * @param days the time period to be analyzed in, in past days
+     * @param days the time period to be analyzed in, in past days from most recent entry
      * @return the Simple Moving Average of the stock if it is valid, 0 otherwise
      */
     public float getSMA (String stock, int days) {
@@ -134,7 +135,13 @@ public class DatabaseHandler {
         }
         // Queries for average value for stock ticker
         String query = String.format(
-                "SELECT AVG(Close) FROM %s WHERE Date >= DATE('now', '-%d days')", stock, days);
+                 "SELECT                                                 "
+                +"    AVG(Close)                                         "
+                +"FROM                                                   "
+                +"    %s                                                 "
+                +"WHERE                                                  "
+                +"    Date > DATE((SELECT MAX(DATE) FROM %s), '-%d days')",
+                stock, stock, days);
         float avg = 0;
         try (
                 Connection connection = DriverManager.getConnection(url);
@@ -152,9 +159,10 @@ public class DatabaseHandler {
 
 
     /**
-     * Gets the Exponential Moving Average (EMA) of a stock for a valid stock ticker in the given time period.
+     * Gets the Exponential Moving Average (EMA) of a stock for a valid stock ticker in the given time period,
+     * starting at the most recent data entries.
      * @param stock the stock ticker to analyze
-     * @param days the time period to be analyzed in, in past days business days from most recent entry
+     * @param days the time period to be analyzed in, in past days from most recent entry
      * @return the Exponential Moving Average of the stock if it is valid, 0 otherwise
      */
     public float getEMA (String stock, int days) {
@@ -170,18 +178,18 @@ public class DatabaseHandler {
         String query =
             "WITH RECURSIVE                                                                           "
             +"    analysis_table AS (                                                                 "
-                      // -- Isolate necessary values
+            +"        -- Isolate necessary values \n                                                  "
             +"        SELECT                                                                          "
             +"            Date,                                                                       "
             +"            Close,                                                                      "
             +"            ROW_NUMBER() OVER (ORDER BY DATE DESC) as row_number                        "
             +"        FROM                                                                            "
             +"            "+stock+"                                                                   "
-            +"        ORDER BY Date DESC                                                              "
-            +"        LIMIT "+days+"                                                                  "
+            +"        WHERE                                                                           "
+            +"            Date > DATE((SELECT MAX(DATE) FROM "+stock+"), '-"+days+" days')            "
             +"    ),                                                                                  "
             +"    ema_calc AS(                                                                        "
-                      // -- Get Close value of first date as initial EMA
+            +"        -- Get Close value of first date as initial EMA \n                              "
             +"        SELECT                                                                          "
             +"            *,                                                                          "
             +"            Close as EMA                                                                "
@@ -192,7 +200,7 @@ public class DatabaseHandler {
             +"                                                                                        "
             +"        UNION ALL                                                                       "
             +"                                                                                        "
-                      // -- Calculate EMA for subsequent dates
+            +"        -- Calculate EMA for subsequent dates \n                                        "
             +"        SELECT                                                                          "
             +"            analysis_table.Date,                                                        "
             +"            analysis_table.Close,                                                       "
@@ -227,9 +235,10 @@ public class DatabaseHandler {
 
 
     /**
-     * Gets the Price Volatility of a stock for a valid stock ticker in the given time period.
+     * Gets the Price Volatility of a stock for a valid stock ticker in the given time period, starting at
+     * the most recent data entries.
      * @param stock the stock ticker to analyze
-     * @param days the time period to be analyzed in, in past days business days from most recent entry
+     * @param days the time period to be analyzed in, in past days from most recent entry
      * @return the Price Volatility of the stock if it is valid, 0 otherwise
      */
     public float getVolatility (String stock, int days) {
@@ -240,11 +249,16 @@ public class DatabaseHandler {
 
         // Calculate Volatility value
         // Setup variables
-        float volatility;
         float mean = getSMA(stock, days);
-        float[] closingPrices = new float[days];
+        List<Float> closingPrices = new ArrayList<>();
         String query = String.format(
-                "SELECT Close FROM %s ORDER BY Date DESC LIMIT %d", stock, days);
+                "SELECT                                                  "
+                +"    Close                                              "
+                +"FROM                                                   "
+                +"    %s                                                 "
+                +"WHERE                                                  "
+                +"    Date > DATE((SELECT MAX(DATE) FROM %s), '-%d days')",
+                stock, stock, days);
 
         // Get closing prices
         try (
@@ -252,23 +266,22 @@ public class DatabaseHandler {
                 Statement statement = connection.createStatement()
         ){
             ResultSet resultSet = statement.executeQuery(query);
-            int i = 0;
-            while (resultSet.next() && i < days) {
-                closingPrices[i++] = resultSet.getFloat(1);
+            while (resultSet.next()) {
+                closingPrices.add(resultSet.getFloat(1));
             }
         }
         catch (SQLException e) {
             System.out.println(e.getMessage());
         }
 
-        // If connection succeeded, calculate volatility
+        // If retrieval succeeded, calculate
         double tmp = 0;
-        if (closingPrices[0] != 0) {
+        if (!closingPrices.isEmpty() && closingPrices.getFirst() != 0) {
             for (float closingPrice : closingPrices) {
                 tmp += Math.pow(closingPrice - mean, 2);
             }
         }
-        return volatility = (float) Math.sqrt(tmp / days);
+        return (float) Math.sqrt(tmp / closingPrices.size()); // Return volatility
     }
 
 

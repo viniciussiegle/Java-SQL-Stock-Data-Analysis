@@ -1,4 +1,6 @@
-package realtime.handlers;
+package analysis.handlers;
+import analysis.Analyses;
+
 import java.io.File;
 import java.util.List;
 import java.util.Objects;
@@ -71,7 +73,7 @@ public class UserHandler {
      * @param stock the stock to be analyzed
      * @param days the time periods to be analyzed in, in past business days from most recent entry
      */
-    public void printResults (String analysis, String stock, int... days) {
+    public void printResults (Analyses analysis, String stock, int... days) {
         if (days.length == 0) { // If no time period is given, return at once
             return;
         }
@@ -81,17 +83,17 @@ public class UserHandler {
         float[] results = new float[n];
 
         switch (analysis) {
-            case "SMA":
+            case SMA:
                 for (int i = 0; i < n; i++) {
                     results[i] = dbHandler.getSMA(stock, days[i]);
                 }
                 break;
-            case "EMA":
+            case EMA:
                 for (int i = 0; i < n; i++) {
                     results[i] = dbHandler.getEMA(stock, days[i]);
                 }
                 break;
-            case "Volatility":
+            case Volatility:
                 for (int i = 0; i < n; i++) {
                     results[i] = dbHandler.getVolatility(stock, days[i]);
                 }
