@@ -26,18 +26,28 @@ public class UserHandler {
 
 
     /**
-     * Calls updates to the database using the .csv files in the specified path. Updates overwrite existing tables.
+     * Calls updates to the database using the .csv files in the specified path, if the path denotes
+     * an existing directory. Updates overwrite existing tables.
      * @param path the path of the source .csv files
      */
     public void updateDB(String path) {
-        // Update the database with all .csv files in the given path
+        // Handles invalid path
         File dir = new File(path);
+        if (!dir.exists() || !dir.isDirectory()) {
+            System.out.println("Directory does not exist");
+        }
+
+        // Update the database with all .csv files in the given path
         for (File file : Objects.requireNonNull(dir.listFiles())) {
             if (file.getName().endsWith(".csv")) {
                 dbHandler.updateDB(file);
+                System.out.println("Data successfully updated with file: " + file.getName());
             }
         }
+        System.out.println("Database successfully updated.");
+        System.out.println();
     }
+
 
     /**
      * Prompts the user for a stock ticker. Only allows tickers existing in the database to avoid injections
@@ -61,6 +71,7 @@ public class UserHandler {
             System.out.println("Please enter stock ticker (" + availableStocks + "): ");
             stock = scanner.nextLine();
         } while (!availableStocks.contains(stock));
+        System.out.println();
 
         return stock;
     }
@@ -68,12 +79,12 @@ public class UserHandler {
 
     /**
      * Prints the given analysis for a given valid stock in the given time periods, starting
-     * at the most recent data entries.
+     * at the most recent data entry.
      * @param analysis analysis to be performed
      * @param stock the stock to be analyzed
-     * @param days the time periods to be analyzed in, in past business days from most recent entry
+     * @param days the time periods to be analyzed in, in past days from most recent entry
      */
-    public void printResults (Analyses analysis, String stock, int... days) {
+    public void analyze(Analyses analysis, String stock, int... days) {
         if (days.length == 0) { // If no time period is given, return at once
             return;
         }

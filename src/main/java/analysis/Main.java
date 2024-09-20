@@ -16,7 +16,7 @@ public class Main {
         UserHandler userHandler = new UserHandler(dbHandler);
 
 
-        // Update data of historical quotes in database
+        // Update data of historical quotes in database with .csv files in path
         userHandler.updateDB(dataSourcePath);
 
 
@@ -26,19 +26,17 @@ public class Main {
 
 
         // Calculate amd print analysis values
-        // Get Performance (5d, 1m, 3m, YTD, 1y)
-
 
         // Get Simple Moving Average (SMA) for the last 30, 180, and 360 days
-        userHandler.printResults(Analyses.SMA, stock, 30, 180, 360);
+        userHandler.analyze(Analyses.SMA, stock, 30, 180, 360);
 
 
         // Get Exponential Moving Average (EMA) for the last 30 days
-        userHandler.printResults(Analyses.EMA, stock, 30);
+        userHandler.analyze(Analyses.EMA, stock, 30);
 
 
         // Get Price Volatility (30d, 180d, 360d)
-        userHandler.printResults(Analyses.Volatility, stock, 30);
+        userHandler.analyze(Analyses.Volatility, stock, 30);
 
 
     }

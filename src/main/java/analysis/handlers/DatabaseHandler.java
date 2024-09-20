@@ -87,7 +87,6 @@ public class DatabaseHandler {
             preparedStatement.close();
             connection.setAutoCommit(true);
 
-            System.out.println("Data successfully updated for: " + tableName);
         }
         catch (SQLException | IOException | ParseException e) {
             System.out.println(e.getMessage());
@@ -134,14 +133,13 @@ public class DatabaseHandler {
             return 0;
         }
         // Queries for average value for stock ticker
-        String query = String.format(
-                 "SELECT                                                 "
-                +"    AVG(Close)                                         "
-                +"FROM                                                   "
-                +"    %s                                                 "
-                +"WHERE                                                  "
-                +"    Date > DATE((SELECT MAX(DATE) FROM %s), '-%d days')",
-                stock, stock, days);
+        String query =
+                "SELECT                                                               "
+                +"    AVG(Close)                                                      "
+                +"FROM                                                                "
+                +"    "+stock+"                                                       "
+                +"WHERE                                                               "
+                +"    Date > DATE((SELECT MAX(DATE) FROM "+stock+"), '-"+days+" days')";
         float avg = 0;
         try (
                 Connection connection = DriverManager.getConnection(url);
@@ -178,7 +176,7 @@ public class DatabaseHandler {
         String query =
             "WITH RECURSIVE                                                                           "
             +"    analysis_table AS (                                                                 "
-            +"        -- Isolate necessary values \n                                                  "
+            +"        -- Isolate necessary values                                                   \n"
             +"        SELECT                                                                          "
             +"            Date,                                                                       "
             +"            Close,                                                                      "
@@ -189,7 +187,7 @@ public class DatabaseHandler {
             +"            Date > DATE((SELECT MAX(DATE) FROM "+stock+"), '-"+days+" days')            "
             +"    ),                                                                                  "
             +"    ema_calc AS(                                                                        "
-            +"        -- Get Close value of first date as initial EMA \n                              "
+            +"        -- Get Close value of first date as initial EMA                               \n"
             +"        SELECT                                                                          "
             +"            *,                                                                          "
             +"            Close as EMA                                                                "
@@ -200,7 +198,7 @@ public class DatabaseHandler {
             +"                                                                                        "
             +"        UNION ALL                                                                       "
             +"                                                                                        "
-            +"        -- Calculate EMA for subsequent dates \n                                        "
+            +"        -- Calculate EMA for subsequent dates                                         \n"
             +"        SELECT                                                                          "
             +"            analysis_table.Date,                                                        "
             +"            analysis_table.Close,                                                       "
@@ -251,14 +249,13 @@ public class DatabaseHandler {
         // Setup variables
         float mean = getSMA(stock, days);
         List<Float> closingPrices = new ArrayList<>();
-        String query = String.format(
-                "SELECT                                                  "
-                +"    Close                                              "
-                +"FROM                                                   "
-                +"    %s                                                 "
-                +"WHERE                                                  "
-                +"    Date > DATE((SELECT MAX(DATE) FROM %s), '-%d days')",
-                stock, stock, days);
+        String query =
+                "SELECT                                                               "
+                +"    Close                                                           "
+                +"FROM                                                                "
+                +"    "+stock+"                                                       "
+                +"WHERE                                                               "
+                +"    Date > DATE((SELECT MAX(DATE) FROM "+stock+"), '-"+days+" days')";
 
         // Get closing prices
         try (
