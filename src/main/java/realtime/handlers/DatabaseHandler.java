@@ -1,4 +1,4 @@
-package realtime;
+package realtime.handlers;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -12,7 +12,6 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * A class that handles all operations to the specified database.
@@ -20,6 +19,7 @@ import java.util.Objects;
 public class DatabaseHandler {
 
     private final String url;
+
 
     /**
      * A class that handles all operations to the specified database.
@@ -29,25 +29,12 @@ public class DatabaseHandler {
         this.url = url;
     }
 
-    /**
-     * Updates the database using the .csv files in the specified path. Overwrites existing tables.
-     * @param path the path of the source .csv files
-     */
-    public void updateDB(String path) {
-        // Update the database with all .csv files in the given path
-        File dir = new File(path);
-        for (File file : Objects.requireNonNull(dir.listFiles())) {
-            if (file.getName().endsWith(".csv")) {
-                updateDB(file);
-            }
-        }
-    }
 
     /**
      * Creates a new table using the data in the given .csv file. Overwrites already existing table with the same name.
      * @param file .csv file to be read from
      */
-    private void updateDB(File file) {
+    protected void updateDB(File file) {
         // Get names
         String csvPath = file.getPath();
         String fileName = file.getName().toLowerCase();
@@ -88,7 +75,6 @@ public class DatabaseHandler {
                 for (int i = 1; i < record.size(); i++) {
                     preparedStatement.setString(i + 1, record.get(i));
                 }
-                //preparedStatement.setString(record.size(), record.get(record.size() - 1));
 
                 preparedStatement.addBatch();
             }
@@ -107,6 +93,7 @@ public class DatabaseHandler {
             System.out.println(e.getMessage());
         }
     }
+
 
     /**
      * Gets a list of available stock tickers in the database. Can serve as a list of valid tickers to avoid injections.
@@ -132,6 +119,7 @@ public class DatabaseHandler {
 
         return availableStocks;
     }
+
 
     /**
      * Gets the Simple Moving Average (SMA) of a stock for a valid stock ticker in the given time period.
@@ -161,6 +149,7 @@ public class DatabaseHandler {
         }
         return avg;
     }
+
 
     /**
      * Gets the Exponential Moving Average (EMA) of a stock for a valid stock ticker in the given time period.
@@ -236,6 +225,13 @@ public class DatabaseHandler {
         return ema;
     }
 
+
+    /**
+     * Gets the Price Volatility of a stock for a valid stock ticker in the given time period.
+     * @param stock the stock ticker to analyze
+     * @param days the time period to be analyzed in, in past days business days from most recent entry
+     * @return the Price Volatility of the stock if it is valid, 0 otherwise
+     */
     public float getVolatility (String stock, int days) {
         // Restricts again to only valid strings to avoid injections
         if (!getAvailableStocks().contains(stock)) {
