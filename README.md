@@ -1,7 +1,7 @@
 # Stock Price Analyzer
 
 ## Overview
-The Stock Price Analyzer is a personal project developed to showcase proficiency in **Java** and **SQL (SQLite3)**, with a focus on financial data processing. The application imports stock data from `.csv` files, stores it in a database, and provides functionality to analyze stock prices by calculating **Simple Moving Averages (SMA)**, **Exponential Moving Averages (EMA)**, and **Price Volatility** using optimized SQL queries and custom implementations.
+The Stock Price Analyzer is a personal project developed in **Java** and **SQL (SQLite3)**, with a focus on financial data processing. The application imports stock data from `.csv` files, stores it in a database, and provides functionality to analyze stock prices by calculating **Simple Moving Averages (SMA)**, **Exponential Moving Averages (EMA)**, and **Price Volatility** using optimized SQL queries and custom implementations.
 
 ## Features
 1. **CSV File Processing:**
@@ -15,14 +15,14 @@ The Stock Price Analyzer is a personal project developed to showcase proficiency
    - The user is prompted to select only valid stock tickers stored in the database for analysis.
 
 3. **SMA Calculation:**
-   - The system calculates the **Simple Moving Average (SMA)** for selected stocks over a user-specified time period.
+   - The system calculates the **Simple Moving Average (SMA)** for selected stocks over user-specified time periods.
    - Efficient SQL queries are used to retrieve historical closing prices and calculate the moving average.
 
 4. **EMA Calculation with Recursive CTEs:**
    - The project uses **Recursive Common Table Expressions (Recursive CTEs)** to query the database and calculate the **Exponential Moving Average (EMA)**, showcasing advanced SQL query techniques.
 
 5. **Price Volatility Calculation:**
-   - The project calculates **Price Volatility** by computing the **Standard Deviation** of closing prices over a specified time period.
+   - The project calculates **Price Volatility** by computing the **Standard Deviation** of closing prices over specified time periods.
    - This feature is implemented manually due to **SQLite's** lack of support for the `STDEV()` function, demonstrating custom algorithm development.
 
 6. **Enum-based Analysis Types:**
