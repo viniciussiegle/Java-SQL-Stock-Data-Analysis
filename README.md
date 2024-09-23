@@ -7,7 +7,7 @@ The Stock Price Analyzer is a personal project developed in **Java** and **SQL (
 1. **CSV File Processing:**
    - The project reads `.csv` files containing historical stock prices.
    - It leverages the **Apache Commons CSV™** library to process and extract the data.
-   - The parsed data is inserted into an **SQLite3** database, updating relevant tables.
+   - The parsed data is inserted into an **SQLite3** database using **batch insertion**, improving performance when updating relevant tables.
 
 2. **Database and User Management:**
    - A **DatabaseHandler class** is implemented to manage database connections, queries, and data processing.
@@ -16,7 +16,7 @@ The Stock Price Analyzer is a personal project developed in **Java** and **SQL (
 
 3. **SMA Calculation:**
    - The system calculates the **Simple Moving Average (SMA)** for selected stocks over user-specified time periods.
-   - Efficient SQL queries are used to retrieve historical closing prices and calculate the moving average.
+   - SQL queries are used to retrieve historical closing prices and calculate the moving average.
 
 4. **EMA Calculation with Recursive CTEs:**
    - The project uses **Recursive Common Table Expressions (Recursive CTEs)** to query the database and calculate the **Exponential Moving Average (EMA)**, showcasing advanced SQL query techniques.
