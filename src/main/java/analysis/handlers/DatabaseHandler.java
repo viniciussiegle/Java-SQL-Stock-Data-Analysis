@@ -134,12 +134,12 @@ public class DatabaseHandler {
         }
         // Queries for average value for stock ticker
         String query =
-                "SELECT                                                               "
-                +"    AVG(Close)                                                      "
-                +"FROM                                                                "
-                +"    "+stock+"                                                       "
-                +"WHERE                                                               "
-                +"    Date > DATE((SELECT MAX(DATE) FROM "+stock+"), '-"+days+" days')";
+                "SELECT                                                                       "
+                +"    AVG(Close)                                                              "
+                +"FROM                                                                        "
+                +"    " + stock + "                                                           "
+                +"WHERE                                                                       "
+                +"    Date > DATE((SELECT MAX(DATE) FROM " + stock + "), '-" + days + " days')";
         float avg = 0;
         try (
                 Connection connection = DriverManager.getConnection(url);
@@ -174,47 +174,47 @@ public class DatabaseHandler {
         float alpha = 2 / (float)(days + 1);
         // Create query with recursive CTEs
         String query =
-            "WITH RECURSIVE                                                                           "
-            +"    analysis_table AS (                                                                 "
-            +"        -- Isolate necessary values                                                   \n"
-            +"        SELECT                                                                          "
-            +"            Date,                                                                       "
-            +"            Close,                                                                      "
-            +"            ROW_NUMBER() OVER (ORDER BY DATE DESC) as row_number                        "
-            +"        FROM                                                                            "
-            +"            "+stock+"                                                                   "
-            +"        WHERE                                                                           "
-            +"            Date > DATE((SELECT MAX(DATE) FROM "+stock+"), '-"+days+" days')            "
-            +"    ),                                                                                  "
-            +"    ema_calc AS(                                                                        "
-            +"        -- Get Close value of first date as initial EMA                               \n"
-            +"        SELECT                                                                          "
-            +"            *,                                                                          "
-            +"            Close as EMA                                                                "
-            +"        FROM                                                                            "
-            +"            analysis_table                                                              "
-            +"        WHERE                                                                           "
-            +"            Date = (SELECT MIN(Date) FROM analysis_table)                               "
-            +"                                                                                        "
-            +"        UNION ALL                                                                       "
-            +"                                                                                        "
-            +"        -- Calculate EMA for subsequent dates                                         \n"
-            +"        SELECT                                                                          "
-            +"            analysis_table.Date,                                                        "
-            +"            analysis_table.Close,                                                       "
-            +"            analysis_table.row_number,                                                  "
-            +"            (analysis_table.Close * "+alpha+") + (ema_calc.EMA * (1 - "+alpha+")) as EMA"
-            +"        FROM                                                                            "
-            +"            analysis_table                                                              "
-            +"        JOIN                                                                            "
-            +"            ema_calc                                                                    "
-            +"        ON                                                                              "
-            +"            analysis_table.row_number = ema_calc.row_number - 1                         "
-            +"        WHERE                                                                           "
-            +"            analysis_table.Date <= (SELECT MAX(Date) FROM analysis_table)               "
-            +"    )                                                                                   "
-            +"                                                                                        "
-            +"SELECT EMA, MAX(Date) FROM ema_calc;                                                    ";
+                "WITH RECURSIVE                                                                          "
+                +"    scope AS (                                                                         "
+                +"        -- Isolate necessary values                                                  \n"
+                +"        SELECT                                                                         "
+                +"            Date,                                                                      "
+                +"            Close,                                                                     "
+                +"            ROW_NUMBER() OVER (ORDER BY DATE DESC) as row_number                       "
+                +"        FROM                                                                           "
+                +"            " + stock + "                                                              "
+                +"        WHERE                                                                          "
+                +"            Date > DATE((SELECT MAX(DATE) FROM " + stock + "), '-" + days + " days')   "
+                +"    ),                                                                                 "
+                +"    ema_calc AS(                                                                       "
+                +"        -- Get Close value of first date as initial EMA                              \n"
+                +"        SELECT                                                                         "
+                +"            *,                                                                         "
+                +"            Close as EMA                                                               "
+                +"        FROM                                                                           "
+                +"            scope                                                                      "
+                +"        WHERE                                                                          "
+                +"            Date = (SELECT MIN(Date) FROM scope)                                       "
+                +"                                                                                       "
+                +"        UNION ALL                                                                      "
+                +"                                                                                       "
+                +"        -- Calculate EMA for subsequent dates                                        \n"
+                +"        SELECT                                                                         "
+                +"            scope.Date,                                                                "
+                +"            scope.Close,                                                               "
+                +"            scope.row_number,                                                          "
+                +"            (scope.Close * " + alpha + ") + (ema_calc.EMA * (1 - " + alpha + ")) as EMA"
+                +"        FROM                                                                           "
+                +"            scope                                                                      "
+                +"        JOIN                                                                           "
+                +"            ema_calc                                                                   "
+                +"        ON                                                                             "
+                +"            scope.row_number = ema_calc.row_number - 1                                 "
+                +"        WHERE                                                                          "
+                +"            scope.Date <= (SELECT MAX(Date) FROM scope)                                "
+                +"    )                                                                                  "
+                +"                                                                                       "
+                +"SELECT EMA, MAX(Date) FROM ema_calc;                                                   ";
 
         float ema = 0;
         try (
@@ -246,39 +246,36 @@ public class DatabaseHandler {
         }
 
         // Calculate Volatility value
-        // Setup variables
-        float mean = getSMA(stock, days);
-        List<Float> closingPrices = new ArrayList<>();
+        // Create query for Variance
         String query =
-                "SELECT                                                               "
-                +"    Close                                                           "
-                +"FROM                                                                "
-                +"    "+stock+"                                                       "
-                +"WHERE                                                               "
-                +"    Date > DATE((SELECT MAX(DATE) FROM "+stock+"), '-"+days+" days')";
+                "WITH scope AS (                                                                   "
+                +"    SELECT                                                                       "
+                +"        Close as close,                                                          "
+                +"        AVG(Close) OVER () AS avg                                                "
+                +"    FROM                                                                         "
+                +"        " + stock + "                                                            "
+                +"    WHERE                                                                        "
+                +"        Date >= DATE((SELECT MAX(DATE) FROM " + stock + "), '-" + days + " days')"
+                +")                                                                                "
+                +"SELECT                                                                           "
+                +"    AVG((scope.close - scope.avg) * (scope.close - scope.avg)) as variance       "
+                +"FROM scope;                                                                      ";
 
-        // Get closing prices
+        float variance = 0;
         try (
                 Connection connection = DriverManager.getConnection(url);
                 Statement statement = connection.createStatement()
-        ){
+        ) {
             ResultSet resultSet = statement.executeQuery(query);
-            while (resultSet.next()) {
-                closingPrices.add(resultSet.getFloat(1));
-            }
+            resultSet.next(); // skip header line
+            variance = resultSet.getFloat(1);
         }
         catch (SQLException e) {
             System.out.println(e.getMessage());
         }
 
-        // If retrieval succeeded, calculate
-        double tmp = 0;
-        if (!closingPrices.isEmpty() && closingPrices.getFirst() != 0) {
-            for (float closingPrice : closingPrices) {
-                tmp += Math.pow(closingPrice - mean, 2);
-            }
-        }
-        return (float) Math.sqrt(tmp / closingPrices.size()); // Return volatility
+        // Return Volatility (Standard Deviation)
+        return (float) Math.sqrt(variance);
     }
 
 

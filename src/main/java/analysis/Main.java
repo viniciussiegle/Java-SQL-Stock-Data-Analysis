@@ -32,11 +32,11 @@ public class Main {
 
 
         // Get Exponential Moving Average (EMA) for the last 30 days
-        userHandler.analyze(Analyses.EMA, stock, 30);
+        userHandler.analyze(Analyses.EMA, stock, 30, 60, 90);
 
 
         // Get Price Volatility (30d, 180d, 360d)
-        userHandler.analyze(Analyses.Volatility, stock, 30);
+        userHandler.analyze(Analyses.Volatility, stock, 30, 90);
 
 
     }
