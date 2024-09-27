@@ -128,11 +128,7 @@ public class DatabaseHandler {
      * @return the Simple Moving Average of the stock if it is valid, 0 otherwise
      */
     public float getSMA (String stock, int days) {
-        // Restricts again to only valid strings to avoid injections
-        if (!getAvailableStocks().contains(stock)) {
-            return 0;
-        }
-        // Queries for average value for stock ticker
+        // Create query for average
         String query =
                 "SELECT                                                                       "
                 +"    AVG(Close)                                                              "
@@ -140,19 +136,8 @@ public class DatabaseHandler {
                 +"    " + stock + "                                                           "
                 +"WHERE                                                                       "
                 +"    Date > DATE((SELECT MAX(DATE) FROM " + stock + "), '-" + days + " days')";
-        float avg = 0;
-        try (
-                Connection connection = DriverManager.getConnection(url);
-                Statement statement = connection.createStatement()
-        ) {
-            ResultSet resultSet = statement.executeQuery(query);
-            resultSet.next(); // skip header line
-            avg = resultSet.getFloat(1);
-        }
-        catch (SQLException e) {
-            System.out.println(e.getMessage());
-        }
-        return avg;
+
+        return runQuery(query, stock);
     }
 
 
@@ -164,14 +149,9 @@ public class DatabaseHandler {
      * @return the Exponential Moving Average of the stock if it is valid, 0 otherwise
      */
     public float getEMA (String stock, int days) {
-        // Restricts again to only valid strings to avoid injections
-        if (!getAvailableStocks().contains(stock)) {
-            return 0;
-        }
-
-        // Calculate EMA values for stock ticker
         // Calculate alpha (smoothing factor) of the EMA
         float alpha = 2 / (float)(days + 1);
+
         // Create query with recursive CTEs
         String query =
                 "WITH RECURSIVE                                                                          "
@@ -216,19 +196,7 @@ public class DatabaseHandler {
                 +"                                                                                       "
                 +"SELECT EMA, MAX(Date) FROM ema_calc;                                                   ";
 
-        float ema = 0;
-        try (
-                Connection connection = DriverManager.getConnection(url);
-                Statement statement = connection.createStatement()
-        ) {
-            ResultSet resultSet = statement.executeQuery(query);
-            resultSet.next(); // skip header line
-            ema = resultSet.getFloat(1);
-        }
-        catch (SQLException e) {
-            System.out.println(e.getMessage());
-        }
-        return ema;
+        return runQuery(query, stock);
     }
 
 
@@ -240,12 +208,6 @@ public class DatabaseHandler {
      * @return the Price Volatility of the stock if it is valid, 0 otherwise
      */
     public float getVolatility (String stock, int days) {
-        // Restricts again to only valid strings to avoid injections
-        if (!getAvailableStocks().contains(stock)) {
-            return 0;
-        }
-
-        // Calculate Volatility value
         // Create query for Variance
         String query =
                 "WITH scope AS (                                                                   "
@@ -261,21 +223,39 @@ public class DatabaseHandler {
                 +"    AVG((scope.close - scope.avg) * (scope.close - scope.avg)) as variance       "
                 +"FROM scope;                                                                      ";
 
-        float variance = 0;
+        // Return Volatility (Standard Deviation)
+        float variance = runQuery(query, stock);
+        return (float) Math.sqrt(variance);
+    }
+
+
+    /**
+     * Runs the analysis query on the database for a given valid stock and returns the resulting value.
+     * @param query the query to be executed on the database
+     * @param stock the stock based on which the analysis should be executed
+     * @return the result of the query if the stock is valid, 0 otherwise
+     */
+    private float runQuery (String query, String stock) {
+        // Restrict again to only valid strings to avoid injections
+        if (!getAvailableStocks().contains(stock)) {
+            return 0;
+        }
+
+        // Execute query
+        float result = 0;
         try (
                 Connection connection = DriverManager.getConnection(url);
                 Statement statement = connection.createStatement()
         ) {
             ResultSet resultSet = statement.executeQuery(query);
             resultSet.next(); // skip header line
-            variance = resultSet.getFloat(1);
+            result = resultSet.getFloat(1);
         }
         catch (SQLException e) {
             System.out.println(e.getMessage());
         }
 
-        // Return Volatility (Standard Deviation)
-        return (float) Math.sqrt(variance);
+        return result;
     }
 
 

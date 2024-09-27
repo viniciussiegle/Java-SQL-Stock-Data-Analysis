@@ -89,7 +89,7 @@ public class UserHandler {
             return;
         }
 
-        // Get analysis
+        // Get analyses
         int n = days.length;
         float[] results = new float[n];
 
