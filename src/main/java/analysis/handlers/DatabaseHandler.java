@@ -35,22 +35,17 @@ public class DatabaseHandler {
      * @param file .csv file to be read from
      */
     protected void updateDB(File file) {
-        // Get names
+        // Get names and paths
         String csvPath = file.getPath();
         String fileName = file.getName().toLowerCase();
         String tableName = fileName.substring(0, fileName.lastIndexOf('.'));
 
-        // Prepare text
+        // Prepare statement text
         String drop = "DROP TABLE IF EXISTS " + tableName;
         String create = "CREATE TABLE " + tableName + "(Date TEXT, Open REAL, High REAL, Low REAL, Close REAL, Volume REAL)";
-        String sql = "INSERT INTO " + tableName + " VALUES (?, ?, ?, ?, ?, ?)";
+        String insert = "INSERT INTO " + tableName + " VALUES (?, ?, ?, ?, ?, ?)";
 
         try (
-                // Open reader for CSV File
-                FileReader reader = new FileReader(csvPath);
-                CSVParser csvParser = new CSVParser(reader,
-                        CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true).build());
-
                 // Connect to database
                 Connection connection = DriverManager.getConnection(url);
                 Statement statement = connection.createStatement()
@@ -59,10 +54,33 @@ public class DatabaseHandler {
             statement.executeUpdate(drop);
             statement.executeUpdate(create);
 
-            // Prepare statement after table has correct schema
-            PreparedStatement preparedStatement = connection.prepareStatement(sql);
+            // Insert data from csv files
+            insertCSVRecords(csvPath, connection, insert);
+        }
+        catch (SQLException e) {
+            System.out.println(e.getMessage());
+        }
+    }
 
-            connection.setAutoCommit(false); // Allow batch processing
+    /**
+     * Inserts the data from the csv file in the given path using the given connection and prepared statement text
+     * @param csvPath the path from the source csv file
+     * @param connection the database connection
+     * @param insert the prepared statement text
+     * @throws SQLException if a database access error occurs, or this method is called on a closed connection
+     */
+    private void insertCSVRecords(String csvPath, Connection connection, String insert) throws SQLException {
+        try (
+                // Open reader for CSV File
+                FileReader reader = new FileReader(csvPath);
+                CSVParser csvParser = new CSVParser(reader,
+                        CSVFormat.DEFAULT.builder().setHeader().setSkipHeaderRecord(true).build());
+
+                // Prepare statement
+                PreparedStatement preparedStatement = connection.prepareStatement(insert)
+        ) {
+            // Allow batch processing
+            connection.setAutoCommit(false);
 
             // Iterate over CSV Records
             for (CSVRecord record : csvParser) {
@@ -83,12 +101,10 @@ public class DatabaseHandler {
             preparedStatement.executeBatch();
             connection.commit();
 
-            // Close necessary resources and return changes to default
-            preparedStatement.close();
+            // Return changes to default
             connection.setAutoCommit(true);
-
         }
-        catch (SQLException | IOException | ParseException e) {
+        catch (IOException | ParseException e) {
             System.out.println(e.getMessage());
         }
     }
@@ -98,7 +114,7 @@ public class DatabaseHandler {
      * Gets a list of available stock tickers in the database. Can serve as a list of valid tickers to avoid injections.
      * @return the list of available stock tickers if the database is not empty, null otherwise
      */
-    public List<String> getAvailableStocks() {
+    protected List<String> getAvailableStocks() {
         // Get available stock tickers based on existing table names
         List<String> availableStocks = null;
         try (
@@ -127,7 +143,7 @@ public class DatabaseHandler {
      * @param days the time period to be analyzed in, in past days from most recent entry
      * @return the Simple Moving Average of the stock if it is valid, 0 otherwise
      */
-    public float getSMA (String stock, int days) {
+    protected float getSMA (String stock, int days) {
         // Create query for average
         String query =
                 "SELECT                                                                       "
@@ -148,7 +164,7 @@ public class DatabaseHandler {
      * @param days the time period to be analyzed in, in past days from most recent entry
      * @return the Exponential Moving Average of the stock if it is valid, 0 otherwise
      */
-    public float getEMA (String stock, int days) {
+    protected float getEMA (String stock, int days) {
         // Calculate alpha (smoothing factor) of the EMA
         float alpha = 2 / (float)(days + 1);
 
@@ -207,7 +223,7 @@ public class DatabaseHandler {
      * @param days the time period to be analyzed in, in past days from most recent entry
      * @return the Price Volatility of the stock if it is valid, 0 otherwise
      */
-    public float getVolatility (String stock, int days) {
+    protected float getVolatility (String stock, int days) {
         // Create query for Variance
         String query =
                 "WITH scope AS (                                                                   "

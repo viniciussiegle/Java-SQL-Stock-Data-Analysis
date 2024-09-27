@@ -12,6 +12,7 @@ public class Main {
         // Initialize handlers and paths
         String dataSourcePath = "data/";
         String databaseUrl = "jdbc:sqlite:data/stocks.db";
+
         DatabaseHandler dbHandler = new DatabaseHandler(databaseUrl);
         UserHandler userHandler = new UserHandler(dbHandler);
 
@@ -25,7 +26,7 @@ public class Main {
 
 
 
-        // Calculate amd print analysis values
+        // Calculate and print analysis values
 
         // Get Simple Moving Average (SMA) for the last 30, 180, and 360 days
         userHandler.analyze(Analyses.SMA, stock, 30, 180, 360);
