@@ -1,7 +1,7 @@
-# Stock Price Analyzer
+# Stock Data Analysis
 
 ## Overview
-The Stock Price Analyzer is a personal project developed in **Java** and **SQL (SQLite3)**, with a focus on financial data processing. The application imports stock data from `.csv` files, stores it in a database, and provides functionality to analyze stock prices by calculating **Simple Moving Averages (SMA)**, **Exponential Moving Averages (EMA)**, and **Price Volatility** using optimized SQL queries and custom implementations.
+The Stock Data Analysis is a personal project developed in **Java** and **SQL (SQLite3)**, with a focus on financial data processing. The application imports stock data from `.csv` files, stores it in a database, and provides functionality to analyze stock prices by calculating **Simple Moving Averages (SMA)**, **Exponential Moving Averages (EMA)**, and **Price Volatility** using optimized SQL queries and custom implementations.
 
 ## Features
 1. **CSV File Processing:**
