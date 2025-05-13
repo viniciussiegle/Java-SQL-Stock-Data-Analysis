@@ -145,13 +145,16 @@ public class DatabaseHandler {
      */
     protected float getSMA (String stock, int days) {
         // Create query for average
-        String query =
-                "SELECT                                                                       "
-                +"    AVG(Close)                                                              "
-                +"FROM                                                                        "
-                +"    " + stock + "                                                           "
-                +"WHERE                                                                       "
-                +"    Date > DATE((SELECT MAX(DATE) FROM " + stock + "), '-" + days + " days')";
+        String query = String.format(
+                """
+                SELECT
+                    AVG(Close)
+                FROM
+                    %s
+                WHERE
+                    Date > DATE((SELECT MAX(DATE) FROM %s), '-%d days')
+                """,
+                stock, stock, days);
 
         return runQuery(query, stock);
     }
@@ -169,48 +172,51 @@ public class DatabaseHandler {
         float alpha = 2 / (float)(days + 1);
 
         // Create query with recursive CTEs
-        String query =
-                "WITH RECURSIVE                                                                          "
-                +"    scope AS (                                                                         "
-                +"        -- Isolate necessary values                                                  \n"
-                +"        SELECT                                                                         "
-                +"            Date,                                                                      "
-                +"            Close,                                                                     "
-                +"            ROW_NUMBER() OVER (ORDER BY DATE DESC) as row_number                       "
-                +"        FROM                                                                           "
-                +"            " + stock + "                                                              "
-                +"        WHERE                                                                          "
-                +"            Date > DATE((SELECT MAX(DATE) FROM " + stock + "), '-" + days + " days')   "
-                +"    ),                                                                                 "
-                +"    ema_calc AS(                                                                       "
-                +"        -- Get Close value of first date as initial EMA                              \n"
-                +"        SELECT                                                                         "
-                +"            *,                                                                         "
-                +"            Close as EMA                                                               "
-                +"        FROM                                                                           "
-                +"            scope                                                                      "
-                +"        WHERE                                                                          "
-                +"            Date = (SELECT MIN(Date) FROM scope)                                       "
-                +"                                                                                       "
-                +"        UNION ALL                                                                      "
-                +"                                                                                       "
-                +"        -- Calculate EMA for subsequent dates                                        \n"
-                +"        SELECT                                                                         "
-                +"            scope.Date,                                                                "
-                +"            scope.Close,                                                               "
-                +"            scope.row_number,                                                          "
-                +"            (scope.Close * " + alpha + ") + (ema_calc.EMA * (1 - " + alpha + ")) as EMA"
-                +"        FROM                                                                           "
-                +"            scope                                                                      "
-                +"        JOIN                                                                           "
-                +"            ema_calc                                                                   "
-                +"        ON                                                                             "
-                +"            scope.row_number = ema_calc.row_number - 1                                 "
-                +"        WHERE                                                                          "
-                +"            scope.Date <= (SELECT MAX(Date) FROM scope)                                "
-                +"    )                                                                                  "
-                +"                                                                                       "
-                +"SELECT EMA, MAX(Date) FROM ema_calc;                                                   ";
+        String query = String.format(
+                """
+                WITH RECURSIVE
+                    scope AS (
+                       -- Isolate necessary values
+                        SELECT
+                            Date,
+                            Close,
+                            ROW_NUMBER() OVER (ORDER BY DATE DESC) as row_number
+                        FROM
+                            %s
+                        WHERE
+                            Date > DATE((SELECT MAX(DATE) FROM %s), '-%d days')
+                    ),
+                    ema_calc AS(
+                        -- Get Close value of first date as initial EMA
+                        SELECT
+                            *,
+                            Close as EMA
+                        FROM
+                            scope
+                        WHERE
+                            Date = (SELECT MIN(Date) FROM scope)
+                
+                        UNION ALL
+                
+                        -- Calculate EMA for subsequent dates
+                        SELECT
+                            scope.Date,
+                            scope.Close,
+                            scope.row_number,
+                            (scope.Close * %f) + (ema_calc.EMA * (1 - %f)) as EMA
+                        FROM
+                            scope
+                        JOIN
+                            ema_calc
+                        ON
+                            scope.row_number = ema_calc.row_number - 1
+                        WHERE
+                            scope.Date <= (SELECT MAX(Date) FROM scope)
+                    )
+                
+                SELECT EMA, MAX(Date) FROM ema_calc;
+                """,
+                stock, stock, days, alpha, alpha);
 
         return runQuery(query, stock);
     }
@@ -225,19 +231,22 @@ public class DatabaseHandler {
      */
     protected float getVolatility (String stock, int days) {
         // Create query for Variance
-        String query =
-                "WITH scope AS (                                                                   "
-                +"    SELECT                                                                       "
-                +"        Close as close,                                                          "
-                +"        AVG(Close) OVER () AS avg                                                "
-                +"    FROM                                                                         "
-                +"        " + stock + "                                                            "
-                +"    WHERE                                                                        "
-                +"        Date >= DATE((SELECT MAX(DATE) FROM " + stock + "), '-" + days + " days')"
-                +")                                                                                "
-                +"SELECT                                                                           "
-                +"    AVG((scope.close - scope.avg) * (scope.close - scope.avg)) as variance       "
-                +"FROM scope;                                                                      ";
+        String query = String.format(
+                """
+                WITH scope AS (
+                    SELECT
+                        Close as close,
+                        AVG(Close) OVER () AS avg
+                    FROM
+                        %s
+                    WHERE
+                        Date >= DATE((SELECT MAX(DATE) FROM %s), '-%d days')
+                )
+                SELECT
+                    AVG((scope.close - scope.avg) * (scope.close - scope.avg)) as variance
+                FROM scope;
+                """,
+                stock, stock, days);
 
         // Return Volatility (Standard Deviation)
         float variance = runQuery(query, stock);
